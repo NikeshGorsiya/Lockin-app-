@@ -39,7 +39,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
 
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
+      quality: 0.3,
       base64: true,
     });
 
@@ -51,7 +51,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
   const openGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
+      quality: 0.3,
       base64: true,
     });
 
@@ -85,7 +85,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
     setState('verifying');
 
     try {
-      const result = await verifyTaskPhoto(task.title, cleanBase64);
+      const result = await verifyTaskPhoto(task.title, cleanBase64 ?? '');
       setResultMessage(result.message);
 
       if (result.verified) {

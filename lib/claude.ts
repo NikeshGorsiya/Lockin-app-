@@ -109,9 +109,11 @@ Return ONLY a numbered list. Nothing else. No intro, no explanation. Format exac
 export async function verifyTaskPhoto(
   taskTitle: string,
   imageBase64: string,
-  mediaType: string = 'image/jpeg'
 ): Promise<{ verified: boolean; message: string }> {
   const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_KEY;
+
+  // Strip any whitespace/line breaks that break base64 encoding
+  const cleanBase64 = imageBase64.replace(/\s/g, '');
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -121,14 +123,14 @@ export async function verifyTaskPhoto(
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
       messages: [{
         role: 'user',
         content: [
           {
             type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: imageBase64 },
+            source: { type: 'base64', media_type: 'image/jpeg', data: cleanBase64 },
           },
           {
             type: 'text',
