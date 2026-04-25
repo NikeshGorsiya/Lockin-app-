@@ -5,6 +5,9 @@ export type Task = {
   emoji: string;
   title: string;
   proof: boolean;
+  verified?: boolean;
+  verificationMessage?: string;
+  proofPhotoUrl?: string;
 };
 
 const TASK_EMOJIS: Record<string, string> = {
@@ -101,4 +104,57 @@ Return ONLY a numbered list. Nothing else. No intro, no explanation. Format exac
     .filter((t: Task) => t.title.length > 0);
 
   return tasks;
+}
+
+export async function verifyTaskPhoto(
+  taskTitle: string,
+  imageBase64: string,
+  mediaType: string = 'image/jpeg'
+): Promise<{ verified: boolean; message: string }> {
+  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_KEY;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey!,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 256,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType, data: imageBase64 },
+          },
+          {
+            type: 'text',
+            text: `The user claims to have completed this habit task: "${taskTitle}".
+
+Look at the photo and decide if it provides reasonable evidence they completed this task.
+
+Be fair but not too strict — a gym selfie proves a workout, a book in hand proves reading, etc.
+
+Reply with ONLY this JSON (no other text):
+{"verified": true or false, "message": "one encouraging sentence — if verified celebrate them, if not tell them what photo would work better"}`,
+          },
+        ],
+      }],
+    }),
+  });
+
+  if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+
+  const data = await response.json();
+  const text: string = data.content[0].text.trim();
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+  } catch {}
+
+  return { verified: false, message: "Couldn't read the response. Try again." };
 }

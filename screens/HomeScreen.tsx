@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import type { Task } from '../lib/claude';
+import ProofModal from './ProofModal';
 
 const FRIENDS = [
   { id: 1, name: 'Jordan', streak: 14, done: 4, total: 5 },
@@ -19,19 +20,24 @@ const FRIENDS = [
 
 type Props = {
   userName: string;
+  userId: string;
   tasks: Task[];
   onSignOut: () => void;
 };
 
-export default function HomeScreen({ userName, tasks: initialTasks, onSignOut }: Props) {
+export default function HomeScreen({ userName, userId, tasks: initialTasks, onSignOut }: Props) {
   const [tasks, setTasks] = useState(initialTasks);
   const [activeTab, setActiveTab] = useState('home');
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const completedCount = tasks.filter((t) => t.proof).length;
-  const progress = completedCount / tasks.length;
+  const completedCount = tasks.filter((t) => t.verified).length;
+  const progress = tasks.length > 0 ? completedCount / tasks.length : 0;
 
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, proof: !t.proof } : t)));
+  const handleVerified = (taskId: number, photoUrl: string, message: string) => {
+    setTasks(tasks.map((t) =>
+      t.id === taskId ? { ...t, proof: true, verified: true, verificationMessage: message, proofPhotoUrl: photoUrl } : t
+    ));
+    setSelectedTask(null);
   };
 
   return (
@@ -71,26 +77,43 @@ export default function HomeScreen({ userName, tasks: initialTasks, onSignOut }:
           {tasks.map((task) => (
             <TouchableOpacity
               key={task.id}
-              style={[styles.taskCard, task.proof && styles.taskCardDone]}
-              onPress={() => toggleTask(task.id)}
+              style={[styles.taskCard, task.verified && styles.taskCardDone]}
+              onPress={() => !task.verified && setSelectedTask(task)}
               activeOpacity={0.8}
             >
               <Text style={styles.taskEmoji}>{task.emoji}</Text>
-              <Text style={[styles.taskTitle, task.proof && styles.taskTitleDone]}>
-                {task.title}
-              </Text>
-              <View style={[styles.checkbox, task.proof && styles.checkboxDone]}>
-                {task.proof && <Text style={styles.checkmark}>✓</Text>}
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.taskTitle, task.verified && styles.taskTitleDone]}>
+                  {task.title}
+                </Text>
+                {task.verified && task.verificationMessage && (
+                  <Text style={styles.taskVerifiedMsg} numberOfLines={1}>
+                    {task.verificationMessage}
+                  </Text>
+                )}
               </View>
+              {task.verified
+                ? <View style={styles.checkboxDone}><Text style={styles.checkmark}>✓</Text></View>
+                : <Text style={styles.cameraIcon}>📸</Text>
+              }
             </TouchableOpacity>
           ))}
 
-          <View style={styles.proofHint}>
-            <Text style={styles.proofHintIcon}>📸</Text>
-            <Text style={styles.proofHintText}>
-              Tap a task then upload photo proof — AI will verify it
-            </Text>
-          </View>
+          {completedCount === 0 && (
+            <View style={styles.proofHint}>
+              <Text style={styles.proofHintIcon}>📸</Text>
+              <Text style={styles.proofHintText}>
+                Tap any task to upload photo proof — Claude AI will verify it
+              </Text>
+            </View>
+          )}
+
+          <ProofModal
+            task={selectedTask}
+            userId={userId}
+            onVerified={handleVerified}
+            onClose={() => setSelectedTask(null)}
+          />
         </ScrollView>
       )}
 
@@ -238,14 +261,15 @@ const styles = StyleSheet.create({
   allDone: { color: C.green, marginTop: 10, fontWeight: '600', textAlign: 'center' },
 
   sectionTitle: { color: C.muted, fontSize: 11, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 },
-  taskCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: C.border },
-  taskCardDone: { borderColor: C.greenDark, opacity: 0.7 },
-  taskEmoji: { fontSize: 22, marginRight: 14 },
-  taskTitle: { flex: 1, color: C.white, fontSize: 15, fontWeight: '500' },
+  taskCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: C.border, gap: 12 },
+  taskCardDone: { borderColor: C.greenDark, opacity: 0.75 },
+  taskEmoji: { fontSize: 22 },
+  taskTitle: { color: C.white, fontSize: 15, fontWeight: '500' },
   taskTitleDone: { color: C.muted, textDecorationLine: 'line-through' },
-  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: C.dim, alignItems: 'center', justifyContent: 'center' },
-  checkboxDone: { backgroundColor: C.green, borderColor: C.green },
+  taskVerifiedMsg: { color: C.green, fontSize: 11, marginTop: 3 },
+  checkboxDone: { width: 26, height: 26, borderRadius: 13, backgroundColor: C.green, alignItems: 'center', justifyContent: 'center' },
   checkmark: { color: '#000', fontWeight: '900', fontSize: 13 },
+  cameraIcon: { fontSize: 20 },
 
   proofHint: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111827', borderRadius: 12, padding: 14, marginTop: 8, gap: 10, borderWidth: 1, borderColor: '#1e3a5f' },
   proofHintIcon: { fontSize: 20 },

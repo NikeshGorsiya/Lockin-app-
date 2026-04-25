@@ -89,7 +89,7 @@ export default function App() {
       return <OnboardingScreen onComplete={handleOnboardingComplete} />;
     }
     const userName = session.user.user_metadata?.full_name?.split(' ')[0] ?? 'there';
-    return <HomeScreen userName={userName} tasks={tasks} onSignOut={() => setSession(null)} />;
+    return <HomeScreen userName={userName} userId={session.user.id} tasks={tasks} onSignOut={() => setSession(null)} />;
   }
 
   if (authScreen === 'signup') {
