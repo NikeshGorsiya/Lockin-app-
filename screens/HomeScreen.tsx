@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 const TASKS = [
   { id: 1, title: 'Morning workout', emoji: '💪', proof: false },
@@ -181,7 +182,10 @@ export default function HomeScreen({ onSignOut }: Props) {
               </TouchableOpacity>
             </View>
           ))}
-          <TouchableOpacity style={styles.signOutBtn} onPress={onSignOut}>
+          <TouchableOpacity style={styles.signOutBtn} onPress={async () => {
+            await supabase.auth.signOut();
+            onSignOut();
+          }}>
             <Text style={styles.signOutText}>Sign out</Text>
           </TouchableOpacity>
         </ScrollView>

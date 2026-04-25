@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -10,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 type Props = {
   onLogin: () => void;
@@ -20,13 +23,32 @@ export default function LoginScreen({ onLogin, onGetStarted }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Login failed', error.message);
+    }
+    // On success, App.tsx detects the new session automatically via onAuthStateChange
+  };
 
   return (
     <SafeAreaView style={s.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* Header */}
           <View style={s.header}>
             <View style={s.logoRow}>
               <View style={s.logoBox}>
@@ -38,7 +60,6 @@ export default function LoginScreen({ onLogin, onGetStarted }: Props) {
             <Text style={s.subtitle}>Time to lock in. Let's go.</Text>
           </View>
 
-          {/* Form */}
           <View style={s.form}>
             <View style={s.fieldGroup}>
               <Text style={s.label}>Email address</Text>
@@ -78,12 +99,19 @@ export default function LoginScreen({ onLogin, onGetStarted }: Props) {
               </View>
             </View>
 
-            <TouchableOpacity style={s.primaryBtn} onPress={onLogin} activeOpacity={0.85}>
-              <Text style={s.primaryBtnText}>Sign in</Text>
+            <TouchableOpacity
+              style={[s.primaryBtn, loading && s.primaryBtnDisabled]}
+              onPress={handleLogin}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#000" />
+                : <Text style={s.primaryBtnText}>Sign in</Text>
+              }
             </TouchableOpacity>
           </View>
 
-          {/* Footer */}
           <View style={s.footer}>
             <Text style={s.footerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={onGetStarted}>
@@ -120,6 +148,7 @@ const s = StyleSheet.create({
   eyeText: { fontSize: 18 },
 
   primaryBtn: { backgroundColor: '#4ade80', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginTop: 4 },
+  primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: '#000', fontWeight: '800', fontSize: 17 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },

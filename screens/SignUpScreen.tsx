@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -10,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 type Props = {
   onSignUp: () => void;
@@ -21,13 +24,37 @@ export default function SignUpScreen({ onSignUp, onSignIn }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      Alert.alert('Missing fields', 'Please fill in all fields.');
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert('Password too short', 'Password must be at least 8 characters.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { full_name: name.trim() } },
+    });
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Sign up failed', error.message);
+    }
+    // On success, App.tsx detects the new session automatically via onAuthStateChange
+  };
 
   return (
     <SafeAreaView style={s.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* Header */}
           <View style={s.header}>
             <View style={s.logoRow}>
               <View style={s.logoBox}>
@@ -39,7 +66,6 @@ export default function SignUpScreen({ onSignUp, onSignIn }: Props) {
             <Text style={s.subtitle}>Start proving yourself today</Text>
           </View>
 
-          {/* Form */}
           <View style={s.form}>
             <View style={s.fieldGroup}>
               <Text style={s.label}>Full name</Text>
@@ -87,8 +113,16 @@ export default function SignUpScreen({ onSignUp, onSignIn }: Props) {
               </View>
             </View>
 
-            <TouchableOpacity style={s.primaryBtn} onPress={onSignUp} activeOpacity={0.85}>
-              <Text style={s.primaryBtnText}>Create account</Text>
+            <TouchableOpacity
+              style={[s.primaryBtn, loading && s.primaryBtnDisabled]}
+              onPress={handleSignUp}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#000" />
+                : <Text style={s.primaryBtnText}>Create account</Text>
+              }
             </TouchableOpacity>
 
             <Text style={s.terms}>
@@ -96,7 +130,6 @@ export default function SignUpScreen({ onSignUp, onSignIn }: Props) {
             </Text>
           </View>
 
-          {/* Footer */}
           <View style={s.footer}>
             <Text style={s.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={onSignIn}>
@@ -131,8 +164,8 @@ const s = StyleSheet.create({
   eyeText: { fontSize: 18 },
 
   primaryBtn: { backgroundColor: '#4ade80', borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginTop: 4 },
+  primaryBtnDisabled: { opacity: 0.6 },
   primaryBtnText: { color: '#000', fontWeight: '800', fontSize: 17 },
-
   terms: { color: '#3f3f46', fontSize: 12, textAlign: 'center', lineHeight: 18 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
