@@ -37,17 +37,28 @@ export default function SignUpScreen({ onSignUp, onSignIn }: Props) {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { full_name: name.trim() } },
-    });
-    setLoading(false);
 
-    if (error) {
-      Alert.alert('Sign up failed', error.message);
+    try {
+      const signUpPromise = supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { full_name: name.trim() } },
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out. Check your internet connection and make sure your Supabase project is not paused.')), 10000)
+      );
+
+      const { error } = await Promise.race([signUpPromise, timeoutPromise]);
+
+      if (error) {
+        Alert.alert('Sign up failed', error.message);
+      }
+    } catch (e: any) {
+      Alert.alert('Sign up failed', e.message);
+    } finally {
+      setLoading(false);
     }
-    // On success, App.tsx detects the new session automatically via onAuthStateChange
   };
 
   return (

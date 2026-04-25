@@ -32,16 +32,27 @@ export default function LoginScreen({ onLogin, onGetStarted }: Props) {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    setLoading(false);
 
-    if (error) {
-      Alert.alert('Login failed', error.message);
+    try {
+      const loginPromise = supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out. Check your internet connection and make sure your Supabase project is not paused.')), 10000)
+      );
+
+      const { error } = await Promise.race([loginPromise, timeoutPromise]);
+
+      if (error) {
+        Alert.alert('Login failed', error.message);
+      }
+    } catch (e: any) {
+      Alert.alert('Login failed', e.message);
+    } finally {
+      setLoading(false);
     }
-    // On success, App.tsx detects the new session automatically via onAuthStateChange
   };
 
   return (
