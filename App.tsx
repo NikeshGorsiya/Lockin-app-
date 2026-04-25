@@ -48,7 +48,8 @@ export default function App() {
 
   // Already logged in — go straight to home
   if (session) {
-    return <HomeScreen onSignOut={() => setSession(null)} />;
+    const userName = session.user.user_metadata?.full_name?.split(' ')[0] ?? 'there';
+    return <HomeScreen userName={userName} onSignOut={() => setSession(null)} />;
   }
 
   // Not logged in — show auth flow

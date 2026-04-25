@@ -25,10 +25,11 @@ const FRIENDS = [
 ];
 
 type Props = {
+  userName: string;
   onSignOut: () => void;
 };
 
-export default function HomeScreen({ onSignOut }: Props) {
+export default function HomeScreen({ userName, onSignOut }: Props) {
   const [tasks, setTasks] = useState(TASKS);
   const [activeTab, setActiveTab] = useState('home');
 
@@ -50,7 +51,7 @@ export default function HomeScreen({ onSignOut }: Props) {
           <View style={styles.header}>
             <View>
               <Text style={styles.appName}>LOCKIN</Text>
-              <Text style={styles.greeting}>Good morning, Nikesh 👋</Text>
+              <Text style={styles.greeting}>Good morning, {userName} 👋</Text>
             </View>
             <View style={styles.streakBadge}>
               <Text style={styles.streakFire}>🔥</Text>
