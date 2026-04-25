@@ -1,5 +1,4 @@
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import {
   ActivityIndicator,
   Alert,
@@ -41,13 +40,11 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.5,
-      base64: false,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      await processPhoto(uri, base64);
+      await processPhoto(result.assets[0].uri, result.assets[0].base64 ?? null);
     }
   };
 
@@ -55,13 +52,11 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.5,
-      base64: false,
+      base64: true,
     });
 
     if (!result.canceled && result.assets[0]) {
-      const uri = result.assets[0].uri;
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      await processPhoto(uri, base64);
+      await processPhoto(result.assets[0].uri, result.assets[0].base64 ?? null);
     }
   };
 
@@ -74,7 +69,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
       return;
     }
 
-    const cleanBase64 = base64;
+    const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
 
     setState('uploading');
     let photoUrl = '';
