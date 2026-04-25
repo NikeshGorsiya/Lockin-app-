@@ -109,6 +109,7 @@ export default function HomeScreen({ userName, userId, tasks: initialTasks, onSi
           )}
 
           <ProofModal
+            key={selectedTask?.id ?? 'none'}
             task={selectedTask}
             userId={userId}
             onVerified={handleVerified}
