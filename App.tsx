@@ -15,18 +15,26 @@ export default function App() {
   const [authScreen, setAuthScreen] = useState<AuthScreen>('welcome');
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Safety net — never spin forever
+    const timeout = setTimeout(() => setLoading(false), 3000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeout);
       setSession(session);
+      setLoading(false);
+    }).catch(() => {
+      clearTimeout(timeout);
       setLoading(false);
     });
 
-    // Listen for login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Show spinner while checking session
