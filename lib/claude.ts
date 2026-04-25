@@ -132,14 +132,26 @@ export async function verifyTaskPhoto(
           },
           {
             type: 'text',
-            text: `The user claims to have completed this habit task: "${taskTitle}".
+            text: `You are verifying photo proof for a habit tracking app. The user completed this task: "${taskTitle}".
 
-Look at the photo and decide if it provides reasonable evidence they completed this task.
+Your job is to verify good-faith effort — not perfection. Be generous. If the photo shows ANY reasonable evidence they did the task, verify it.
 
-Be fair but not too strict — a gym selfie proves a workout, a book in hand proves reading, etc.
+Examples of what to ACCEPT:
+- Reading task: open book, e-reader, notes, highlighted pages, anything book-related
+- Workout task: gym clothes, weights, sweaty selfie, workout equipment, gym background
+- Meditation task: calm setting, yoga mat, closed eyes, peaceful environment
+- Cold shower: wet hair, towel, bathroom setting, steam
+- No social media: phone face down, timer app, anything suggesting they avoided their phone
+- Journaling: notebook, pen and paper, writing app open
+- Water intake: water bottle, glass of water
+- Any task: if the photo is even vaguely related to the activity, verify it
 
-Reply with ONLY this JSON (no other text):
-{"verified": true or false, "message": "one encouraging sentence — if verified celebrate them, if not tell them what photo would work better"}`,
+Only REJECT if the photo is completely unrelated (e.g. a photo of food for a workout task with zero gym context).
+
+Reply with ONLY valid JSON, nothing else:
+{"verified": true, "message": "celebratory one-liner"}
+or
+{"verified": false, "message": "friendly suggestion of what photo would work"}`,
           },
         ],
       }],
