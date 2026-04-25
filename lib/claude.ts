@@ -160,7 +160,10 @@ or
     }),
   });
 
-  if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(`Claude API error: ${response.status} — ${JSON.stringify(errBody)}`);
+  }
 
   const data = await response.json();
   const text: string = data.content[0].text.trim();
