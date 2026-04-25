@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { supabase } from './lib/supabase';
+import { generateTasksFromOnboarding, type Task } from './lib/claude';
 import type { Session } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
 import SignUpScreen from './screens/SignUpScreen';
@@ -15,15 +16,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState<AuthScreen>('welcome');
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [generatingTasks, setGeneratingTasks] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 3000);
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(timeout);
       if (session) {
-        const hasOnboarded = session.user.user_metadata?.onboarded === true;
-        setNeedsOnboarding(!hasOnboarded);
+        const meta = session.user.user_metadata;
+        setNeedsOnboarding(meta?.onboarded !== true);
+        if (meta?.tasks) setTasks(meta.tasks);
       }
       setSession(session);
       setLoading(false);
@@ -32,10 +36,11 @@ export default function App() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        const hasOnboarded = session.user.user_metadata?.onboarded === true;
-        setNeedsOnboarding(!hasOnboarded);
+        const meta = session.user.user_metadata;
+        setNeedsOnboarding(meta?.onboarded !== true);
+        if (meta?.tasks) setTasks(meta.tasks);
       }
       setSession(session);
     });
@@ -47,19 +52,36 @@ export default function App() {
   }, []);
 
   const handleOnboardingComplete = async (answers: OnboardingAnswers) => {
-    // Save answers to user metadata and mark as onboarded
-    await supabase.auth.updateUser({
-      data: { onboarded: true, onboarding: answers },
-    });
+    setGeneratingTasks(true);
+    try {
+      const generated = await generateTasksFromOnboarding(answers);
+      setTasks(generated);
+      await supabase.auth.updateUser({
+        data: { onboarded: true, onboarding: answers, tasks: generated },
+      });
+    } catch (e) {
+      // Fallback tasks if Claude fails
+      setTasks([
+        { id: 1, emoji: '💪', title: 'Morning workout', proof: false },
+        { id: 2, emoji: '📚', title: 'Read for 30 minutes', proof: false },
+        { id: 3, emoji: '🧘', title: 'Meditate for 10 minutes', proof: false },
+        { id: 4, emoji: '💧', title: 'Drink 2L of water', proof: false },
+        { id: 5, emoji: '✍️', title: 'Write in your journal', proof: false },
+      ]);
+      await supabase.auth.updateUser({ data: { onboarded: true } });
+    }
     setNeedsOnboarding(false);
+    setGeneratingTasks(false);
   };
 
+  // Spinner while checking session
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#4ade80" />
-      </View>
-    );
+    return <Spinner message="Loading..." />;
+  }
+
+  // Spinner while Claude generates tasks
+  if (generatingTasks) {
+    return <Spinner message={`Building your personal task list...`} sub="Claude is reading your answers ✨" />;
   }
 
   if (session) {
@@ -67,25 +89,15 @@ export default function App() {
       return <OnboardingScreen onComplete={handleOnboardingComplete} />;
     }
     const userName = session.user.user_metadata?.full_name?.split(' ')[0] ?? 'there';
-    return <HomeScreen userName={userName} onSignOut={() => setSession(null)} />;
+    return <HomeScreen userName={userName} tasks={tasks} onSignOut={() => setSession(null)} />;
   }
 
   if (authScreen === 'signup') {
-    return (
-      <SignUpScreen
-        onSignUp={() => {}}
-        onSignIn={() => setAuthScreen('login')}
-      />
-    );
+    return <SignUpScreen onSignUp={() => {}} onSignIn={() => setAuthScreen('login')} />;
   }
 
   if (authScreen === 'login') {
-    return (
-      <LoginScreen
-        onLogin={() => {}}
-        onGetStarted={() => setAuthScreen('signup')}
-      />
-    );
+    return <LoginScreen onLogin={() => {}} onGetStarted={() => setAuthScreen('signup')} />;
   }
 
   return (
@@ -95,3 +107,19 @@ export default function App() {
     />
   );
 }
+
+function Spinner({ message, sub }: { message: string; sub?: string }) {
+  return (
+    <View style={styles.spinner}>
+      <ActivityIndicator size="large" color="#4ade80" />
+      <Text style={styles.spinnerText}>{message}</Text>
+      {sub && <Text style={styles.spinnerSub}>{sub}</Text>}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  spinner: { flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 },
+  spinnerText: { color: '#ffffff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  spinnerSub: { color: '#71717a', fontSize: 14, textAlign: 'center' },
+});

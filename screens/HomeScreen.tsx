@@ -9,14 +9,7 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
-
-const TASKS = [
-  { id: 1, title: 'Morning workout', emoji: '💪', proof: false },
-  { id: 2, title: 'Read for 30 mins', emoji: '📚', proof: false },
-  { id: 3, title: 'Cold shower', emoji: '🚿', proof: false },
-  { id: 4, title: 'Meditate 10 mins', emoji: '🧘', proof: false },
-  { id: 5, title: 'No social media before 12pm', emoji: '📵', proof: false },
-];
+import type { Task } from '../lib/claude';
 
 const FRIENDS = [
   { id: 1, name: 'Jordan', streak: 14, done: 4, total: 5 },
@@ -26,11 +19,12 @@ const FRIENDS = [
 
 type Props = {
   userName: string;
+  tasks: Task[];
   onSignOut: () => void;
 };
 
-export default function HomeScreen({ userName, onSignOut }: Props) {
-  const [tasks, setTasks] = useState(TASKS);
+export default function HomeScreen({ userName, tasks: initialTasks, onSignOut }: Props) {
+  const [tasks, setTasks] = useState(initialTasks);
   const [activeTab, setActiveTab] = useState('home');
 
   const completedCount = tasks.filter((t) => t.proof).length;
