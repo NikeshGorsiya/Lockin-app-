@@ -39,7 +39,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
 
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 0.4,
       base64: true,
     });
 
@@ -51,7 +51,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
   const openGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 0.4,
       base64: true,
     });
 
@@ -60,15 +60,33 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
     }
   };
 
-  const processPhoto = async (uri: string, base64: string) => {
+  const processPhoto = async (uri: string, base64: string | null) => {
     setPhotoUri(uri);
+
+    if (!base64) {
+      setState('failed');
+      setResultMessage('Could not read photo data. Try again.');
+      return;
+    }
+
+    // Strip data URL prefix if present (e.g. "data:image/jpeg;base64,")
+    const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
+
     setState('uploading');
+    let photoUrl = '';
 
     try {
-      const photoUrl = await uploadProofPhoto(userId, task.id, uri);
-      setState('verifying');
+      photoUrl = await uploadProofPhoto(userId, task.id, uri);
+    } catch (e: any) {
+      setState('failed');
+      setResultMessage(`Upload failed: ${e.message}`);
+      return;
+    }
 
-      const result = await verifyTaskPhoto(task.title, base64);
+    setState('verifying');
+
+    try {
+      const result = await verifyTaskPhoto(task.title, cleanBase64);
       setResultMessage(result.message);
 
       if (result.verified) {
@@ -79,7 +97,7 @@ export default function ProofModal({ task, userId, onVerified, onClose }: Props)
       }
     } catch (e: any) {
       setState('failed');
-      setResultMessage('Something went wrong. Try again.');
+      setResultMessage(`Verification failed: ${e.message}`);
     }
   };
 

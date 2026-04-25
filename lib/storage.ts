@@ -7,12 +7,17 @@ export async function uploadProofPhoto(
 ): Promise<string> {
   const fileName = `${userId}/task_${taskId}_${Date.now()}.jpg`;
 
-  const response = await fetch(imageUri);
-  const blob = await response.blob();
+  // FormData upload works reliably on both iOS and Android
+  const formData = new FormData();
+  formData.append('file', {
+    uri: imageUri,
+    name: 'photo.jpg',
+    type: 'image/jpeg',
+  } as any);
 
   const { error } = await supabase.storage
     .from('proof-photos')
-    .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
+    .upload(fileName, formData, { contentType: 'image/jpeg', upsert: true });
 
   if (error) throw new Error(error.message);
 
