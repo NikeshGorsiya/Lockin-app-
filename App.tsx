@@ -26,8 +26,9 @@ export default function App() {
       clearTimeout(timeout);
       if (session) {
         const meta = session.user.user_metadata;
-        setNeedsOnboarding(meta?.onboarded !== true);
-        if (meta?.tasks) setTasks(meta.tasks);
+        const hasTasks = Array.isArray(meta?.tasks) && meta.tasks.length > 0;
+        setNeedsOnboarding(!hasTasks);
+        if (hasTasks) setTasks(meta.tasks);
       }
       setSession(session);
       setLoading(false);
@@ -39,8 +40,9 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         const meta = session.user.user_metadata;
-        setNeedsOnboarding(meta?.onboarded !== true);
-        if (meta?.tasks) setTasks(meta.tasks);
+        const hasTasks = Array.isArray(meta?.tasks) && meta.tasks.length > 0;
+        setNeedsOnboarding(!hasTasks);
+        if (hasTasks) setTasks(meta.tasks);
       }
       setSession(session);
     });
