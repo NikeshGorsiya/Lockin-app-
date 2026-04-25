@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import WelcomeScreen from './screens/WelcomeScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import LoginScreen from './screens/LoginScreen';
+import OnboardingScreen, { type OnboardingAnswers } from './screens/OnboardingScreen';
 import HomeScreen from './screens/HomeScreen';
 
 type AuthScreen = 'welcome' | 'signup' | 'login';
@@ -13,13 +14,17 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState<AuthScreen>('welcome');
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
-    // Safety net — never spin forever
     const timeout = setTimeout(() => setLoading(false), 3000);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(timeout);
+      if (session) {
+        const hasOnboarded = session.user.user_metadata?.onboarded === true;
+        setNeedsOnboarding(!hasOnboarded);
+      }
       setSession(session);
       setLoading(false);
     }).catch(() => {
@@ -27,7 +32,11 @@ export default function App() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const hasOnboarded = session.user.user_metadata?.onboarded === true;
+        setNeedsOnboarding(!hasOnboarded);
+      }
       setSession(session);
     });
 
@@ -37,7 +46,14 @@ export default function App() {
     };
   }, []);
 
-  // Show spinner while checking session
+  const handleOnboardingComplete = async (answers: OnboardingAnswers) => {
+    // Save answers to user metadata and mark as onboarded
+    await supabase.auth.updateUser({
+      data: { onboarded: true, onboarding: answers },
+    });
+    setNeedsOnboarding(false);
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center', justifyContent: 'center' }}>
@@ -46,13 +62,14 @@ export default function App() {
     );
   }
 
-  // Already logged in — go straight to home
   if (session) {
+    if (needsOnboarding) {
+      return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+    }
     const userName = session.user.user_metadata?.full_name?.split(' ')[0] ?? 'there';
     return <HomeScreen userName={userName} onSignOut={() => setSession(null)} />;
   }
 
-  // Not logged in — show auth flow
   if (authScreen === 'signup') {
     return (
       <SignUpScreen
