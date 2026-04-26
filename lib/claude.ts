@@ -93,7 +93,9 @@ Return ONLY a numbered list. Nothing else. No intro, no explanation. Format exac
     .split('\n')
     .filter((line: string) => /^\d+\./.test(line.trim()))
     .map((line: string, index: number) => {
-      const title = line.replace(/^\d+\.\s*/, '').trim();
+      const full = line.replace(/^\d+\.\s*/, '').trim();
+      // Keep only the part before any dash/colon description
+      const title = full.split(/\s*[—–:]\s*/)[0].trim();
       return {
         id: index + 1,
         emoji: pickEmoji(title),

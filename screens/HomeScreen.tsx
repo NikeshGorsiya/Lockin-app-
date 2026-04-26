@@ -23,9 +23,10 @@ type Props = {
   userId: string;
   tasks: Task[];
   onSignOut: () => void;
+  onRedoOnboarding: () => void;
 };
 
-export default function HomeScreen({ userName, userId, tasks: initialTasks, onSignOut }: Props) {
+export default function HomeScreen({ userName, userId, tasks: initialTasks, onSignOut, onRedoOnboarding }: Props) {
   const [tasks, setTasks] = useState(initialTasks);
   const [activeTab, setActiveTab] = useState('home');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -201,6 +202,10 @@ export default function HomeScreen({ userName, userId, tasks: initialTasks, onSi
               </TouchableOpacity>
             </View>
           ))}
+          <TouchableOpacity style={styles.redoBtn} onPress={onRedoOnboarding}>
+            <Text style={styles.redoBtnText}>🔄 Redo my task list</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.signOutBtn} onPress={async () => {
             await supabase.auth.signOut();
             onSignOut();
@@ -315,7 +320,9 @@ const styles = StyleSheet.create({
   joinBtnText: { color: C.green, fontWeight: '700', fontSize: 13 },
   joinBtnTextJoined: { color: C.white },
 
-  signOutBtn: { marginTop: 24, padding: 16, alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: '#3f3f46' },
+  redoBtn: { marginTop: 24, padding: 16, alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: '#4ade80', backgroundColor: '#0f2a1a' },
+  redoBtnText: { color: '#4ade80', fontWeight: '700', fontSize: 15 },
+  signOutBtn: { marginTop: 12, padding: 16, alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: '#3f3f46' },
   signOutText: { color: '#71717a', fontWeight: '600', fontSize: 15 },
 
   bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, paddingBottom: 28, paddingTop: 10 },

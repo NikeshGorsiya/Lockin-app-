@@ -53,6 +53,12 @@ export default function App() {
     };
   }, []);
 
+  const handleRedoOnboarding = async () => {
+    await supabase.auth.updateUser({ data: { onboarded: false, tasks: [] } });
+    setTasks([]);
+    setNeedsOnboarding(true);
+  };
+
   const handleOnboardingComplete = async (answers: OnboardingAnswers) => {
     setGeneratingTasks(true);
     try {
@@ -91,7 +97,7 @@ export default function App() {
       return <OnboardingScreen onComplete={handleOnboardingComplete} />;
     }
     const userName = session.user.user_metadata?.full_name?.split(' ')[0] ?? 'there';
-    return <HomeScreen userName={userName} userId={session.user.id} tasks={tasks} onSignOut={() => setSession(null)} />;
+    return <HomeScreen userName={userName} userId={session.user.id} tasks={tasks} onSignOut={() => setSession(null)} onRedoOnboarding={handleRedoOnboarding} />;
   }
 
   if (authScreen === 'signup') {
